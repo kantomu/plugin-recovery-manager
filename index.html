@@ -3892,6 +3892,7 @@
             return JSON.parse(localStorage.getItem(uKey(CU.uid, t)) || '[]');
         }
 
+        let auth = null, db = null;
         let CU = null, plugins = [], wishlist = [], tags = [], regEmails = [];
 
         // ============ AUTH ============
@@ -4035,13 +4036,28 @@
 
         function logout() { localStorage.removeItem(K.session); CU = null; location.reload(); }
 
+
+        // Helper: SHA-256 for local auth
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
         async function checkSession() {
             const uid = localStorage.getItem(K.session);
-            if (uid) {
+            if (uid && uid !== 'guest') {
                 const users = getUsers();
+                // Verify user exists locally or assume valid if session persists (for now, stricter check better)
                 if (users[uid]) { await login(uid, users[uid]); return; }
             }
-            await loginGuest();
+            // If no session or invalid, do nothing (stay on auth screen)
+            // But if Guest mode was active?
+            // Original code: await loginGuest() if no session.
+            // Better: Stay on Auth Screen. 
+            // Only auto-login guest if explicitly requested?
+            // Current flow: User sees Auth Screen.
         }
 
         // ============ SIDEBAR / TABS ============
