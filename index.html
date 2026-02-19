@@ -748,7 +748,12 @@
                         <p class="text-sm text-gray-400 mb-2">メール: <span class="text-white" id="settEmail"></span></p>
                         <p class="text-sm text-gray-400 mb-4">表示名: <span class="text-white" id="settName"></span></p>
 
-                        <div class="border-t border-gray-700/50 pt-4 mt-2">
+                        <div class="mt-4 pt-4 border-t border-gray-700/50">
+                            <label class="flex items-center gap-2 cursor-pointer mb-4">
+                                <input type="checkbox" id="settAutoLogin" checked onchange="toggleAutoLogin()"
+                                    class="form-checkbox h-4 w-4 text-p-500 rounded border-gray-600 bg-gray-700 focus:ring-p-500/50">
+                                <span class="text-sm text-gray-300">次回から自動ログインする</span>
+                            </label>
                             <button id="settingsAuthBtn" onclick="logout()"
                                 class="w-full py-2.5 text-sm font-semibold rounded-lg bg-s-700 hover:bg-red-500/20 text-gray-300 hover:text-red-400 border border-gray-700/50 transition-colors">
                                 🚪 ログアウト
@@ -4048,10 +4053,38 @@
             location.reload();
         }
 
-
-
+        async function toggleAutoLogin() {
+            if (!auth) return;
+            const chk = document.getElementById('settAutoLogin').checked;
+            const pType = chk ? window.firebase.auth.Auth.Persistence.LOCAL : window.firebase.auth.Auth.Persistence.SESSION;
+            try {
+                await window.firebase.setPersistence(auth, pType);
+                localStorage.setItem('prm_autologin', chk);
+                toast(chk ? '✅ 自動ログイン: ON' : '🔒 自動ログイン: OFF (ブラウザ終了でログアウト)');
+            } catch (e) {
+                console.error(e);
+                toast('❌ 設定変更エラー');
+                document.getElementById('settAutoLogin').checked = !chk; // revert
+            }
+        }
 
         async function checkSession() {
+            // Restore Auto Login setting into UI
+            const savedAuto = localStorage.getItem('prm_autologin');
+            if (savedAuto !== null) {
+                const isAuto = savedAuto === 'true';
+                const chk = document.getElementById('settAutoLogin');
+                if (chk) chk.checked = isAuto;
+                // Apply persistence on load if possible? 
+                // Creating auth instance usually applies default. 
+                // Persistence state is stored in IndexedDB by Firebase SDK itself.
+                // Re-applying here is redundant but safe.
+                if (auth) {
+                    const pType = isAuto ? window.firebase.auth.Auth.Persistence.LOCAL : window.firebase.auth.Auth.Persistence.SESSION;
+                    window.firebase.setPersistence(auth, pType).catch(() => { });
+                }
+            }
+
             const uid = localStorage.getItem(K.session);
             if (uid && uid !== 'guest') {
                 const users = getUsers();
