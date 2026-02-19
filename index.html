@@ -368,15 +368,93 @@
             }
         }
 
+        /* Dynamic Background Blobs */
+        .bg-dynamic-wrap {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            background: #0d0d12;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            mix-blend-mode: screen;
+            animation: float 20s infinite alternate cubic-bezier(0.45, 0, 0.55, 1);
+        }
+
+        .blob-1 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, #38bdf8 0%, transparent 70%);
+            top: -100px;
+            left: -100px;
+        }
+
+        .blob-2 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, #f97316 0%, transparent 70%);
+            bottom: -100px;
+            right: -100px;
+            animation-duration: 25s;
+            animation-delay: -5s;
+        }
+
+        .blob-3 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #a855f7 0%, transparent 70%);
+            top: 40%;
+            left: 30%;
+            animation-duration: 30s;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+
+            100% {
+                transform: translate(100px, 50px) rotate(90deg) scale(1.1);
+            }
+        }
+
+        /* Glassmorphism Refinements */
+        .bg-s-800 {
+            background: rgba(20, 20, 28, 0.75) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .card-h:hover {
+            background: rgba(24, 24, 34, 0.85) !important;
+            border-color: rgba(56, 189, 248, 0.2) !important;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3) !important;
+        }
+
         /* Staggered Animation */
         .stagger-item {
             opacity: 0;
-            animation: fi 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation: fi 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
     </style>
 </head>
 
 <body class="min-h-screen text-gray-200">
+    <div class="bg-dynamic-wrap">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
 
     <!-- AUTH SCREEN -->
     <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
@@ -611,9 +689,17 @@
                                     data-val="iLok USB">🔑 iLok USB</div>
                                 <div class="chip" onclick="setChip('fAuth', 'Waves')" data-target="fAuth"
                                     data-val="Waves">🌊 Waves</div>
+                                <div class="chip" onclick="setChip('fAuth', '独自認証')" data-target="fAuth"
+                                    data-val="独自認証">🛡️ 独自認証</div>
+                                <div class="chip" onclick="setChip('fAuth', 'Native Access')" data-target="fAuth"
+                                    data-val="Native Access">📦 Native</div>
                                 <button onclick="clearF()"
                                     class="chip border-red-500/30 text-red-400 hover:bg-red-500/10">✕ クリア</button>
                             </div>
+
+                            <!-- Chips: Tags (Multi-select) -->
+                            <div class="chip-scroll" id="chipRowTag"></div>
+                            <div id="filterSummary" class="px-1 pt-2 pb-0 text-xs text-a-400 font-mono hidden"></div>
 
                             <!-- Hidden Selects -->
                             <div class="hidden">
@@ -841,13 +927,15 @@
                             <option>その他</option>
                         </select></div>
                 </div>
-                <div><label class="block text-xs text-gray-400 mb-1">購入元/DLリンク</label>
-                    <div class="relative"><input id="fU" type="url"
-                            class="w-full px-3 py-2 pr-10 text-sm bg-s-700 border border-gray-700/50 rounded-lg outline-none"
-                            placeholder="https://...">
-                        <button type="button"
-                            onclick="const u=document.getElementById('fU').value;if(u)window.open(u,'_blank')"
-                            class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-a-400 text-sm">🔗</button>
+                <div><label class="block text-xs text-gray-400 mb-1">関連サイト</label>
+                    <div id="siteList" class="space-y-2 mb-2"></div>
+                    <div class="flex gap-2">
+                        <input id="newSiteName" placeholder="サイト名 (例: 公式)"
+                            class="w-1/3 px-3 py-2 text-sm bg-s-700 border border-gray-700/50 rounded-lg outline-none">
+                        <input id="newSiteUrl" placeholder="https://..."
+                            class="flex-1 px-3 py-2 text-sm bg-s-700 border border-gray-700/50 rounded-lg outline-none">
+                        <button type="button" onclick="addSite()"
+                            class="px-3 py-2 text-xs font-semibold rounded-lg bg-s-600 hover:bg-s-500 text-white transition-colors">追加</button>
                     </div>
                 </div>
                 <input type="hidden" id="fE" value="">
@@ -1265,38 +1353,55 @@
             { n: 'OTT', m: 'Xfer Records', c: 'エフェクト', a: 'その他', u: 'https://xferrecords.com/freeware', dl: 'https://xferrecords.com/freeware' },
             // --- Native Instruments ---
             // --- Native Instruments ---
-            { n: 'Kontakt 8', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/samplers/kontakt/', dl: 'https://www.native-instruments.com/en/specials/native-access/' },
-            { n: 'Kontakt 7', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/', dl: '' },
-            { n: 'Kontakt 6', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/', dl: '' },
-            { n: 'Massive X', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/massive-x/', dl: '' },
-            { n: 'Massive', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/massive/', dl: '' },
-            { n: 'Reaktor 6', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/reaktor-6/', dl: '' },
-            { n: 'FM8', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/fm8/', dl: '' },
-            { n: 'Battery 4', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/drums/battery/', dl: '' },
-            { n: 'Guitar Rig 7', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/guitar/guitar-rig/', dl: '' },
-            { n: 'Komplete 15', m: 'Native Instruments', c: 'バンドル', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/', dl: '' },
-            { n: 'Komplete Kontrol', m: 'Native Instruments', c: 'ユーティリティ', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/keyboards/komplete-kontrol-s-series/', dl: '' },
-            { n: 'Absynth 5', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/absynth-5/', dl: '' },
-            { n: 'Kontour', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/kontour/', dl: '' },
-            { n: 'Monark', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/monark/', dl: '' },
-            { n: 'Super 8', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/super-8/', dl: '' },
-            { n: 'TRK-01', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/trk-01/', dl: '' },
-            { n: 'The Gentleman', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/keys/the-gentleman/', dl: '' },
-            { n: 'The Grandeur', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/keys/the-grandeur/', dl: '' },
-            { n: 'The Maverick', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/keys/the-maverick/', dl: '' },
-            { n: 'Alicia\'s Keys', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/keys/alicias-keys/', dl: '' },
-            { n: 'Session Guitarist', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/guitar/', dl: '' },
-            { n: 'Session Strings Pro 2', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/orchestral/session-strings-pro/', dl: '' },
-            { n: 'Session Horns Pro', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/orchestral/session-horns-pro/', dl: '' },
-            { n: 'Symphony Series', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/orchestral/', dl: '' },
-            { n: 'Maschine', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/maschine/', dl: '' },
-            { n: 'Replika XT', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/replika-xt/', dl: '' },
-            { n: 'Raum', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/raum/', dl: '' },
-            { n: 'Supercharger GT', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/supercharger-gt/', dl: '' },
-            { n: 'Crush Pack', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/crush-pack/', dl: '' },
-            { n: 'Phasis', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/phasis/', dl: '' },
-            { n: 'Choral', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/choral/', dl: '' },
-            { n: 'Flair', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/flair/', dl: '' },
+            { n: 'Kontakt 8', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/samplers/kontakt/', dl: 'https://www.native-instruments.com/en/specials/native-access/', tags: ['音源', 'Native Instruments', 'NKS', 'Sampler'] },
+            { n: 'Kontakt 7', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Sampler'] },
+            { n: 'Kontakt 6', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Sampler'] },
+            { n: 'Massive X', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/massive-x/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Synth'] },
+            { n: 'Massive', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/massive/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Synth'] },
+            { n: 'Reaktor 6', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/reaktor-6/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Modular'] },
+            { n: 'FM8', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/fm8/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Synth'] },
+            { n: 'Battery 4', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/drums/battery/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Drums'] },
+            { n: 'Guitar Rig 7', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/guitar/guitar-rig/', dl: '', tags: ['エフェクト', 'Native Instruments', 'NKS', 'Guitar'] },
+            { n: 'Komplete 15', m: 'Native Instruments', c: 'バンドル', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/', dl: '', tags: ['バンドル', 'Native Instruments'] },
+            { n: 'Komplete Kontrol', m: 'Native Instruments', c: 'ユーティリティ', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/keyboards/komplete-kontrol-s-series/', dl: '', tags: ['ユーティリティ', 'Native Instruments', 'NKS'] },
+            { n: 'Absynth 5', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/absynth-5/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Synth'] },
+            { n: 'Kontour', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/kontour/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Synth'] },
+            { n: 'Monark', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/monark/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Synth'] },
+            { n: 'Super 8', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/super-8/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Synth'] },
+            { n: 'TRK-01', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/synths/trk-01/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Drums'] },
+            { n: 'The Gentleman', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/keys/the-gentleman/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Piano', 'Kontakt'] },
+            { n: 'The Grandeur', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/keys/the-grandeur/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Piano', 'Kontakt'] },
+            { n: 'The Maverick', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/keys/the-maverick/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Piano', 'Kontakt'] },
+            { n: 'Alicia\'s Keys', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/keys/alicias-keys/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Piano', 'Kontakt'] },
+            { n: 'Piano Colors', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/keys/piano-colors/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Piano', 'Kontakt'] },
+            { n: 'Session Guitarist - Electric Sunburst Deluxe', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/guitar/session-guitarist-electric-sunburst-deluxe/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Guitar', 'Kontakt'] },
+            { n: 'Session Guitarist - Electric Vintage', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/guitar/session-guitarist-electric-vintage/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Guitar', 'Kontakt'] },
+            { n: 'Session Guitarist - Electric Mint', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/guitar/session-guitarist-electric-mint/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Guitar', 'Kontakt'] },
+            { n: 'Session Guitarist - Strummed Acoustic', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/guitar/session-guitarist-strummed-acoustic/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Guitar', 'Kontakt'] },
+            { n: 'Session Guitarist - Picked Acoustic', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/guitar/session-guitarist-picked-acoustic/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Guitar', 'Kontakt'] },
+            { n: 'Session Guitarist - Picked Nylon', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/guitar/session-guitarist-picked-nylon/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Guitar', 'Kontakt'] },
+            { n: 'Session Strings Pro 2', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/orchestral/session-strings-pro-2/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Strings', 'Kontakt'] },
+            { n: 'Session Horns Pro', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/orchestral/session-horns-pro/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Horns', 'Kontakt'] },
+            { n: 'Symphony Series - String Ensemble', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/symphony-series-string-ensemble/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Strings', 'Orchestral', 'Kontakt'] },
+            { n: 'Symphony Series - Brass Ensemble', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/symphony-series-brass-ensemble/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Brass', 'Orchestral', 'Kontakt'] },
+            { n: 'Symphony Series - Woodwind Ensemble', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/symphony-series-woodwind-ensemble/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Woodwinds', 'Orchestral', 'Kontakt'] },
+            { n: 'Symphony Series - Percussion', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/symphony-series-percussion/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Drums', 'Orchestral', 'Kontakt'] },
+            { n: 'Action Strings 2', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/action-strings-2/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Strings', 'Cinematic', 'Kontakt'] },
+            { n: 'Action Strikes', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/action-strikes/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Drums', 'Cinematic', 'Kontakt'] },
+            { n: 'Thrill', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/thrill/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Cinematic', 'Kontakt'] },
+            { n: 'Ashlight', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/ashlight/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Cinematic', 'Kontakt'] },
+            { n: 'Straylight', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/straylight/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Cinematic', 'Kontakt'] },
+            { n: 'Pharlight', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/pharlight/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Cinematic', 'Kontakt'] },
+            { n: 'Arkhis', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/arkhis/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Cinematic', 'Kontakt'] },
+            { n: 'Sequis', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/cinematic/sequis/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Cinematic', 'Kontakt'] },
+            { n: 'Maschine', m: 'Native Instruments', c: 'インストゥルメント', a: 'Native Access', u: 'https://www.native-instruments.com/products/maschine/', dl: '', tags: ['音源', 'Native Instruments', 'NKS', 'Sampler'] },
+            { n: 'Replika XT', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/replika-xt/', dl: '', tags: ['エフェクト', 'Native Instruments', 'NKS', 'Delay'] },
+            { n: 'Raum', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/raum/', dl: '', tags: ['エフェクト', 'Native Instruments', 'NKS', 'Reverb'] },
+            { n: 'Supercharger GT', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/supercharger-gt/', dl: '', tags: ['エフェクト', 'Native Instruments', 'NKS', 'Dynamics'] },
+            { n: 'Crush Pack', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/crush-pack/', dl: '', tags: ['エフェクト', 'Native Instruments', 'NKS', 'Distortion'] },
+            { n: 'Phasis', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/phasis/', dl: '', tags: ['エフェクト', 'Native Instruments', 'NKS', 'Modulation'] },
+            { n: 'Choral', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/choral/', dl: '', tags: ['エフェクト', 'Native Instruments', 'NKS', 'Modulation'] },
+            { n: 'Flair', m: 'Native Instruments', c: 'エフェクト', a: 'Native Access', u: 'https://www.native-instruments.com/products/komplete/effects/flair/', dl: '', tags: ['エフェクト', 'Native Instruments', 'NKS', 'Modulation'] },
             // --- FabFilter ---
             { n: 'Pro-Q 4', m: 'FabFilter', c: 'エフェクト', a: '独自認証', u: 'https://www.fabfilter.com/products/pro-q-4-equalizer-plug-in', dl: 'https://www.fabfilter.com/download' },
             { n: 'Pro-Q 3', m: 'FabFilter', c: 'エフェクト', a: '独自認証', u: 'https://www.fabfilter.com/products/pro-q-3-equalizer-plug-in', dl: 'https://www.fabfilter.com/download' },
@@ -1483,66 +1588,40 @@
             // TIER 2: MAJOR BRANDS (200-600)
             // ========================================
             // --- Waves (Individual Plugins) ---
-            { n: 'SSL E-Channel', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/ssl-e-channel', dl: 'https://www.waves.com/downloads' },
-            { n: 'SSL G-Master Buss Compressor', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/ssl-g-master-buss-compressor', dl: '' },
-            { n: 'CLA-2A', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-2a-compressor-limiter', dl: '' },
-            { n: 'CLA-76', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-76-compressor-limiter', dl: '' },
-            { n: 'CLA-3A', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-3a-compressor-limiter', dl: '' },
-            { n: 'CLA Vocals', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-vocals', dl: '' },
-            { n: 'CLA Bass', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-bass', dl: '' },
-            { n: 'CLA Guitars', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-guitars', dl: '' },
-            { n: 'CLA Drums', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-drums', dl: '' },
-            { n: 'CLA MixHub', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-mixhub', dl: '' },
-            { n: 'CLA Epic', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-epic', dl: '' },
-            { n: 'API 2500', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/api-2500', dl: '' },
-            { n: 'API 550A', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/api-550a', dl: '' },
-            { n: 'API 550B', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/api-550b', dl: '' },
-            { n: 'API 560', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/api-560', dl: '' },
-            { n: 'Neve 1073', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/scheps-73', dl: '' },
-            { n: 'V-EQ4', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/v-eq4', dl: '' },
-            { n: 'H-Delay', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/h-delay-hybrid-delay', dl: '' },
-            { n: 'H-Reverb', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/h-reverb-hybrid-reverb', dl: '' },
-            { n: 'H-Comp', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/h-comp-hybrid-compressor', dl: '' },
-            { n: 'H-EQ', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/h-eq-hybrid-equalizer', dl: '' },
-            { n: 'R-Verb', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/renaissance-reverb', dl: '' },
-            { n: 'R-Compressor', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/renaissance-compressor', dl: '' },
-            { n: 'R-EQ', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/renaissance-equalizer', dl: '' },
-            { n: 'R-Vox', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/renaissance-vox', dl: '' },
-            { n: 'R-DeEsser', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/renaissance-de-esser', dl: '' },
-            { n: 'R-Bass', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/renaissance-bass', dl: '' },
-            { n: 'R-Channel', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/renaissance-channel', dl: '' },
-            { n: 'R-Axx', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/renaissance-axx', dl: '' },
-            { n: 'L1 Limiter', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/l1-ultramaximizer', dl: '' },
-            { n: 'L2 Ultramaximizer', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/l2-ultramaximizer', dl: '' },
-            { n: 'L3 Multimaximizer', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/l3-multimaximizer', dl: '' },
-            { n: 'L3-16', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/l3-16-multimaximizer', dl: '' },
-            { n: 'Linear Phase EQ', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/linear-phase-equalizer', dl: '' },
-            { n: 'Linear Phase MB', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/linear-phase-multiband-compressor', dl: '' },
-            { n: 'MaxxBass', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/maxxbass', dl: '' },
-            { n: 'OneKnob Louder', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/oneknob-louder', dl: '' },
-            { n: 'OneKnob Wetter', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/oneknob-wetter', dl: '' },
-            { n: 'OneKnob Brighter', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/oneknob-brighter', dl: '' },
-            { n: 'OneKnob Phatter', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/oneknob-phatter', dl: '' },
-            { n: 'OneKnob Pressure', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/oneknob-pressure', dl: '' },
-            { n: 'OneKnob Driver', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/oneknob-driver', dl: '' },
-            { n: 'OneKnob Filter', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/oneknob-filter', dl: '' },
-            { n: 'Center', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/center', dl: '' },
-            { n: 'Doubler', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/doubler', dl: '' },
-            { n: 'MondoMod', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/mondomod', dl: '' },
-            { n: 'MetaFlanger', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/metaflanger', dl: '' },
-            { n: 'Enigma', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/enigma', dl: '' },
-            { n: 'Manny Marroquin EQ', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/manny-marroquin-eq', dl: '' },
-            { n: 'Manny Marroquin Reverb', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/manny-marroquin-reverb', dl: '' },
-            { n: 'Manny Marroquin Delay', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/manny-marroquin-delay', dl: '' },
-            { n: 'Manny Marroquin Triple D', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/manny-marroquin-triple-d', dl: '' },
-            { n: 'Manny Marroquin Tone Shaper', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/manny-marroquin-tone-shaper', dl: '' },
-            { n: 'CLA-2A Compressor / Limiter', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-2a-compressor-limiter', dl: '' },
-            { n: 'CLA-76 Compressor / Limiter', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-76-compressor-limiter', dl: '' },
-            { n: 'CLA-3A Compressor / Limiter', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/cla-3a-compressor-limiter', dl: '' },
-            { n: 'API 2500', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/api-2500', dl: '' },
-            { n: 'API 550A', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/api-550', dl: '' },
-            { n: 'API 550B', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/api-550', dl: '' },
-            { n: 'API 560', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/api-560', dl: '' },
+            { n: 'Teletronix LA-2A Tube Compressor Collection', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/teletronix-la-2a-tube-compressor-collection.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics', 'Vintage'] },
+            { n: '1176 Classic FET Limiter Collection', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/1176-classic-fet-limiter-collection.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics', 'Vintage'] },
+            { n: 'Fairchild Tube Limiter Collection', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/fairchild-tube-limiter-collection.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics', 'Vintage'] },
+            { n: 'API 2500 Bus Compressor', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/api-2500-bus-compressor.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics', 'Console'] },
+            { n: 'Empirical Labs EL8 Distressor', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/empirical-labs-el8-distressor.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics'] },
+            { n: 'Manley Variable Mu Limiter Compressor', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/manley-variable-mu-limiter-compressor.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics', 'Mastering'] },
+            { n: 'SSL 4000 G Bus Compressor', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/ssl-4000-g-bus-compressor.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics', 'Console'] },
+            { n: 'dbx 160 Compressor / Limiter', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/dbx-160.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics'] },
+            { n: 'Neve 33609 Compressor', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/neve-33609.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics', 'Console'] },
+            { n: 'Tube-Tech CL 1B MkII Compressor', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/tube-tech-cl-1b-mkii-compressor.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics'] },
+            { n: 'Capitol Mastering Compressor', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/capitol-mastering-compressor.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics', 'Mastering'] },
+            { n: 'UA 175B & 176 Tube Compressor Collection', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/compressors-limiters/ua-175b-176-tube-compressor-collection.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Dynamics', 'Vintage'] },
+            { n: 'API Vision Channel Strip Collection', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/channel-strips/api-vision-channel-strip-collection.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Console', 'Unison'] },
+            { n: 'Neve 1073 Preamp & EQ Collection', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/channel-strips/neve-1073-collection.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Console', 'Unison', 'EQ'] },
+            { n: 'Neve 88RS Channel Strip Collection', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/channel-strips/neve-88rs-collection.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Console', 'Unison'] },
+            { n: 'SSL 4000 E Channel Strip Collection', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/channel-strips/ssl-4000-e-channel-strip-collection.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Console', 'Unison'] },
+            { n: 'Manley VOXBOX Channel Strip', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/channel-strips/manley-voxbox.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Console', 'Unison', 'Vocal'] },
+            { n: 'Avalon VT-737sp Vacuum Tube Channel Strip', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/channel-strips/avalon-vt-737sp.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Console', 'Unison', 'Vocal'] },
+            { n: 'Pultec Passive EQ Collection', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/equalizers/pultec-passive-eq-collection.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'EQ', 'Vintage'] },
+            { n: 'Manley Massive Passive EQ Collection', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/equalizers/manley-massive-passive-eq.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'EQ', 'Mastering'] },
+            { n: 'Capitol Chambers', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/reverbs/capitol-chambers.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Reverb'] },
+            { n: 'Hitsville Reverb Chambers', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/reverbs/hitsville-reverb-chambers.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Reverb'] },
+            { n: 'Ocean Way Studios', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/reverbs/ocean-way-studios.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Reverb'] },
+            { n: 'Lexicon 224 Digital Reverb', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/reverbs/lexicon-224.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Reverb', 'Vintage'] },
+            { n: 'Lexicon 480L Digital Reverb and Effects', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/reverbs/lexicon-480l.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Reverb', 'Vintage'] },
+            { n: 'EMT 140 Classic Plate Reverb', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/reverbs/emt-140.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Reverb', 'Vintage'] },
+            { n: 'Ampex ATR-102 Mastering Tape Recorder', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/special-processing/ampex-atr-102.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Tape', 'Mastering'] },
+            { n: 'Studer A800 Multichannel Tape Recorder', m: 'Universal Audio', c: 'エフェクト', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/special-processing/studer-a800-multichannel-tape-recorder.html', dl: '', tags: ['エフェクト', 'Universal Audio', 'UAD', 'Tape'] },
+            { n: 'Opal Morphing Synthesizer', m: 'Universal Audio', c: 'インストゥルメント', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/instruments/opal-morphing-synthesizer.html', dl: '', tags: ['音源', 'Universal Audio', 'UAD', 'Synth'] },
+            { n: 'Moog Minimoog', m: 'Universal Audio', c: 'インストゥルメント', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/instruments/moog-minimoog.html', dl: '', tags: ['音源', 'Universal Audio', 'UAD', 'Synth', 'Vintage'] },
+            { n: 'Waterfall B3 Organ', m: 'Universal Audio', c: 'インストゥルメント', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/instruments/waterfall-b3-organ.html', dl: '', tags: ['音源', 'Universal Audio', 'UAD', 'Organ'] },
+            { n: 'Ravel Grand Piano', m: 'Universal Audio', c: 'インストゥルメント', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/instruments/ravel-grand-piano.html', dl: '', tags: ['音源', 'Universal Audio', 'UAD', 'Piano'] },
+            { n: 'Electra 88 Vintage Keyboard Studio', m: 'Universal Audio', c: 'インストゥルメント', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/instruments/electra-88-vintage-keyboard-studio.html', dl: '', tags: ['音源', 'Universal Audio', 'UAD', 'Piano'] },
+            { n: 'PolyMAX Synth', m: 'Universal Audio', c: 'インストゥルメント', a: 'UAD Spark', u: 'https://www.uaudio.jp/uad-plugins/instruments/polymax-synth.html', dl: '', tags: ['音源', 'Universal Audio', 'UAD', 'Synth'] },
             { n: 'Scheps 73', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/scheps-73', dl: '' },
             { n: 'V-Comp', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/v-comp', dl: '' },
             { n: 'V-EQ3', m: 'Waves', c: 'エフェクト', a: 'Waves', u: 'https://www.waves.com/plugins/v-eq3', dl: '' },
@@ -4021,6 +4100,7 @@
             }
 
             if (!tags.length) tags = [{ name: 'お気に入り', color: '#f97316' }, { name: 'マスタリング', color: '#a855f7' }, { name: 'ミキシング', color: '#22c55e' }];
+            migrateTags(); // Auto-migrate tags to Japanese
             if (email === 'matsukan0207@gmail.com') { CU.isAdmin = true; }
 
             // Sync Profile (Cloud Mode): Ensure User Doc exists for Admin List
@@ -4072,6 +4152,7 @@
                 saveD('tags', tags);
                 localStorage.setItem(uKey('guest', 'tags_init'), '1');
             }
+            migrateTags(); // Auto-migrate tags
 
             document.getElementById('authScreen').classList.add('hidden'); document.getElementById('appScreen').classList.remove('hidden');
             document.getElementById('userEmail').textContent = 'Guest Mode';
@@ -4218,19 +4299,54 @@
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
         function closeSidebar() { document.getElementById('sidebar').classList.add('-translate-x-full'); }
 
+        // ============ SITE MANAGEMENT ============
+        let currentSites = [];
+        function renderSites() {
+            const list = document.getElementById('siteList');
+            if (!currentSites.length) { list.innerHTML = '<div class="text-xs text-gray-500">登録サイトなし</div>'; return; }
+            list.innerHTML = currentSites.map((s, i) => `
+                <div class="flex items-center gap-2 bg-s-700 p-2 rounded-lg border border-gray-700/50">
+                    <span class="text-xs font-bold text-gray-300 w-1/3 truncate" title="${esc(s.name)}">${esc(s.name)}</span>
+                    <a href="${esc(s.url)}" target="_blank" class="flex-1 text-xs text-a-400 truncate hover:underline">${esc(s.url)}</a>
+                    <button type="button" onclick="removeSite(${i})" class="text-gray-500 hover:text-red-400">×</button>
+                </div>
+            `).join('');
+        }
+        function addSite() {
+            const n = document.getElementById('newSiteName').value.trim();
+            const u = document.getElementById('newSiteUrl').value.trim();
+            if (!n || !u) { toast('⚠️ サイト名とURLを入力してください'); return; }
+            currentSites.push({ name: n, url: u });
+            document.getElementById('newSiteName').value = '';
+            document.getElementById('newSiteUrl').value = '';
+            renderSites();
+        }
+        function removeSite(i) {
+            currentSites.splice(i, 1);
+            renderSites();
+        }
+
         // ============ MODAL ============
         function openM(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
         function closeM(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
         function openModal(id) {
             openM('modal'); document.getElementById('pForm').reset(); document.getElementById('fL').type = 'password'; document.getElementById('tLB').textContent = '👁'; renderTagSelect([]);
+            currentSites = [];
             if (id) {
                 const p = plugins.find(x => x.id === id); if (!p) return; document.getElementById('mTitle').textContent = 'プラグイン編集'; document.getElementById('eId').value = id;
                 document.getElementById('fN').value = p.name; document.getElementById('fM').value = p.maker || ''; document.getElementById('fC').value = p.category || 'インストゥルメント';
-                document.getElementById('fP').value = p.priority || '中'; document.getElementById('fA').value = p.auth || 'その他'; document.getElementById('fU').value = p.url || '';
+                document.getElementById('fP').value = p.priority || '中'; document.getElementById('fA').value = p.auth || 'その他';
+                // Site migration logic: if p.sites exists use it, otherwise use p.url if present
+                if (p.sites && p.sites.length) {
+                    currentSites = [...p.sites];
+                } else if (p.url) {
+                    currentSites.push({ name: '🌐 公式', url: p.url });
+                }
                 document.getElementById('fL').value = p.license || ''; document.getElementById('fNt').value = p.notes || '';
                 document.getElementById('fIn').checked = !!p.installed; renderTagSelect(p.tags || []);
             }
             else { document.getElementById('mTitle').textContent = '新規プラグイン登録'; document.getElementById('eId').value = ''; }
+            renderSites();
         }
         function closeModal() { closeM('modal'); }
         function toggleLP() { const i = document.getElementById('fL'), b = document.getElementById('tLB'); if (i.type === 'password') { i.type = 'text'; b.textContent = '🔒'; } else { i.type = 'password'; b.textContent = '👁'; } }
@@ -4258,6 +4374,8 @@
 
         // ============ TAG SYSTEM ============
         let selectedTags = [];
+        let filterTags = new Set(); // For filtering (AND logic)
+
         function renderTagSelect(sel) {
             selectedTags = [...sel]; const c = document.getElementById('tagSelect');
             c.innerHTML = tags.map(t => {
@@ -4266,14 +4384,41 @@
             }).join('');
         }
         function toggleTag(n) { if (selectedTags.includes(n)) selectedTags = selectedTags.filter(x => x !== n); else selectedTags.push(n); renderTagSelect(selectedTags); }
+
         function addTag() {
             const n = document.getElementById('newTagName').value.trim(), c = document.getElementById('newTagColor').value;
             if (!n) return; if (tags.find(t => t.name === n)) { toast('⚠️ 同名のタグがあります'); return; }
-            tags.push({ name: n, color: c }); saveD('tags', tags); document.getElementById('newTagName').value = ''; renderTags(); updateTagFilter(); toast('🏷️ タグ追加: ' + n);
+            tags.push({ name: n, color: c }); saveD('tags', tags); document.getElementById('newTagName').value = ''; renderTags(); renderTagFilterChips(); toast('🏷️ タグ追加: ' + n);
         }
-        function removeTag(n) { tags = tags.filter(t => t.name !== n); saveD('tags', tags); plugins.forEach(p => { if (p.tags) p.tags = p.tags.filter(t => t !== n); }); saveD('plugins', plugins); renderTags(); updateTagFilter(); render(); }
-        function renderTags() { document.getElementById('tagList').innerHTML = tags.map(t => `<div class="tag border" style="border-color:${t.color};color:${t.color}"><span class="w-2 h-2 rounded-full inline-block" style="background:${t.color}"></span>${esc(t.name)}<button onclick="removeTag('${esc(t.name)}')" class="ml-1 hover:text-red-400">×</button></div>`).join(''); updateTagFilter(); }
-        function updateTagFilter() { const sel = document.getElementById('fTag'); const cur = sel.value; sel.innerHTML = '<option value="">全タグ</option>' + tags.map(t => `<option>${esc(t.name)}</option>`).join(''); sel.value = cur; }
+        function removeTag(n) { tags = tags.filter(t => t.name !== n); saveD('tags', tags); plugins.forEach(p => { if (p.tags) p.tags = p.tags.filter(t => t !== n); }); saveD('plugins', plugins); renderTags(); renderTagFilterChips(); render(); }
+
+        function renderTags() { document.getElementById('tagList').innerHTML = tags.map(t => `<div class="tag border" style="border-color:${t.color};color:${t.color}"><span class="w-2 h-2 rounded-full inline-block" style="background:${t.color}"></span>${esc(t.name)}<button onclick="removeTag('${esc(t.name)}')" class="ml-1 hover:text-red-400">×</button></div>`).join(''); renderTagFilterChips(); }
+
+        // Filter Logic
+        function renderTagFilterChips() {
+            const list = document.getElementById('chipRowTag');
+            if (!list) return;
+            // Show all tags
+            list.innerHTML = tags.map(t => {
+                const isActive = filterTags.has(t.name);
+                // Use tag color for border/text, and background if active
+                const style = `border-color:${t.color}; color:${isActive ? '#fff' : t.color}; background:${isActive ? t.color : 'transparent'}`;
+                return `<button onclick="toggleFilterTag('${esc(t.name)}')" class="chip border ${isActive ? 'active' : ''}" style="${style}">${esc(t.name)}</button>`;
+            }).join('') + (filterTags.size > 0 ? `<button onclick="clearTagFilter()" class="chip border-red-500/30 text-red-400 hover:bg-red-500/10">✕</button>` : '');
+        }
+
+        function toggleFilterTag(n) {
+            if (filterTags.has(n)) filterTags.delete(n);
+            else filterTags.add(n);
+            renderTagFilterChips();
+            render();
+        }
+
+        function clearTagFilter() {
+            filterTags.clear();
+            renderTagFilterChips();
+            render();
+        }
 
         // ============ CRUD PLUGINS ============
         function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -4290,7 +4435,8 @@
             const d = {
                 id: id || uid(), name: document.getElementById('fN').value.trim(), maker: document.getElementById('fM').value.trim(),
                 category: document.getElementById('fC').value, priority: document.getElementById('fP').value, auth: document.getElementById('fA').value,
-                url: document.getElementById('fU').value.trim(), license: document.getElementById('fL').value.trim(),
+                sites: [...currentSites], // Save the sites array
+                license: document.getElementById('fL').value.trim(),
                 notes: document.getElementById('fNt').value.trim(), installed: document.getElementById('fIn').checked, tags: [...selectedTags], updatedAt: new Date().toISOString()
             };
             if (id) { const i = plugins.findIndex(x => x.id === id); if (i !== -1) plugins[i] = { ...plugins[i], ...d }; toast('✅ 更新しました'); }
@@ -4587,22 +4733,94 @@
         // ============ CATALOG ============
         // Removed CATALOG_NI in favor of PDB Integration
 
-        function getTags(item) {
-            const t = new Set(item.t || []); // Explicit tags
+        const MAKER_URLS = {
+            'Native Instruments': 'https://www.native-instruments.com/',
+            'iZotope': 'https://www.izotope.com/',
+            'Spectrasonics': 'https://www.spectrasonics.net/',
+            'Toontrack': 'https://www.toontrack.com/',
+            'IK Multimedia': 'https://www.ikmultimedia.com/',
+            'Steinberg': 'https://www.steinberg.net/',
+            'u-he': 'https://u-he.com/',
+            'Xfer Records': 'https://xferrecords.com/',
+            'FabFilter': 'https://www.fabfilter.com/',
+            'Waves': 'https://www.waves.com/',
+            'Soundtoys': 'https://www.soundtoys.com/',
+            'Arturia': 'https://www.arturia.com/',
+            'Universal Audio': 'https://www.uaudio.com/',
+            'Valhalla DSP': 'https://valhalladsp.com/',
+            'Kilohearts': 'https://kilohearts.com/',
+            'Output': 'https://output.com/',
+            'Spitfire Audio': 'https://www.spitfireaudio.com/',
+            'Heavyocity': 'https://heavyocity.com/',
+            'Vienna': 'https://www.vsl.co.at/',
+            'Celemony': 'https://www.celemony.com/',
+            'Slate Digital': 'https://slatedigital.com/',
+            'Plugin Alliance': 'https://www.plugin-alliance.com/',
+            'Softube': 'https://www.softube.com/',
+            'SSL': 'https://www.solidstatelogic.com/'
+        };
+
+        const PB_BRANDS = ['iZotope', 'FabFilter', 'Arturia', 'Soundtoys', 'u-he', 'Output', 'Heavyocity', 'Softube', 'SSL', 'Kilohearts', 'Waves', 'Universal Audio', 'Plugin Alliance', 'Toontrack', 'Celemony', 'Excite Audio', 'Baby Audio', 'Cableguys', 'D16 Group'];
+
+        const TAG_TRANSLATION = {
+            'Instrument': '音源', 'Effect': 'エフェクト',
+            'Wavetable': 'ウェーブテーブル', 'FM': 'FMシンセ', 'Analog Modeling': 'アナログモデリング',
+            'Hybrid': 'ハイブリッド', 'Sampler': 'サンプラー',
+            'EQ': 'イコライザー', 'Dynamics': 'ダイナミクス', 'Reverb': 'リバーブ', 'Delay': 'ディレイ', 'Saturation': 'サチュレーション',
+            'NKS': 'NKS対応', 'AI': 'AI搭載', 'DSP': 'DSP動作', 'Waves': 'Waves',
+            'Orchestral': 'オーケストラ', 'Cinematic': 'シネマティック', 'Drums': 'ドラム/パーカッション',
+            'Guitar': 'ギター/ベース', 'Vocal': 'ボーカル', 'Piano': 'ピアノ/鍵盤',
+            'Lo-Fi': 'Lo-Fi', 'Granular': 'グラニュラー', 'Distortion': 'ディストーション'
+        };
+
+        function enrichPlugin(item) {
+            const t = new Set();
+            // Translate existing tags if any
+            (item.t || []).forEach(tag => {
+                t.add(TAG_TRANSLATION[tag] || tag);
+            });
+
             const n = item.n.toLowerCase(), m = (item.m || '').toLowerCase(), c = item.c;
+            const sites = [];
+
+            // --- URL Generation ---
+            // 1. Official
+            if (MAKER_URLS[item.m]) {
+                sites.push({ name: '🌐 公式', url: MAKER_URLS[item.m] });
+            } else if (item.u && item.u.startsWith('http')) {
+                sites.push({ name: '🌐 公式', url: item.u });
+            }
+
+            // 2. Plugin Boutique (Distributor)
+            if (PB_BRANDS.includes(item.m) || PB_BRANDS.some(b => m.includes(b.toLowerCase()))) {
+                sites.push({ name: '🛒 Plugin Boutique', url: 'https://www.pluginboutique.com/' });
+            }
+
+            // --- Tag Generation (Japanese) ---
+            if (c === 'インストゥルメント') t.add('音源');
+            if (c === 'エフェクト') t.add('エフェクト');
 
             // Synthesis Types
-            if (n.includes('massive') || n.includes('serum') || n.includes('pigments')) t.add('Wavetable');
-            if (n.includes('fm8') || n.includes('dx7') || n.includes('opsix')) t.add('FM');
-            if (n.includes('diva') || n.includes('monark') || n.includes('repro')) t.add('Analog Modeling');
+            if (n.includes('massive') || n.includes('serum') || n.includes('pigments') || n.includes('ana 2') || n.includes('phase plant')) t.add('ウェーブテーブル');
+            if (n.includes('fm8') || n.includes('dx7') || n.includes('opsix') || n.includes('operator')) t.add('FMシンセ');
+            if (n.includes('diva') || n.includes('monark') || n.includes('repro') || n.includes('juno') || n.includes('jupiter') || m.includes('arturia') || m.includes('u-he')) t.add('アナログモデリング');
+            if (n.includes('omnisphere') || n.includes('falcon') || n.includes('halion')) t.add('ハイブリッド');
+            if (n.includes('kontakt') || n.includes('sampletank') || n.includes('falcon') || n.includes('uvi') || n.includes('battery')) t.add('サンプラー');
 
-            // Features
-            if (m.includes('native instruments') || m.includes('izotope') || m.includes('arturia')) t.add('NKS'); // Broad assumption for these brands or specific list
-            if (n.includes('ozone') || n.includes('neutron') || n.includes('smart') || n.includes('ai')) t.add('AI');
-            if (c === 'インストゥルメント') t.add('Instrument');
-            if (c === 'エフェクト') t.add('Effect');
+            // Processing Types (Effect)
+            if (n.includes('pro-q') || n.includes('eq') || n.includes('filter')) t.add('イコライザー');
+            if (n.includes('pro-c') || n.includes('comp') || n.includes('limiter') || n.includes('cl-1b') || n.includes('pressor')) t.add('ダイナミクス');
+            if (n.includes('pro-r') || n.includes('reverb') || n.includes('room') || n.includes('hall') || n.includes('plate') || n.includes('valhalla')) t.add('リバーブ');
+            if (n.includes('delay') || n.includes('echo') || n.includes('timeless')) t.add('ディレイ');
+            if (n.includes('seat') || n.includes('sat') || n.includes('dist') || n.includes('drive') || n.includes('decapitator') || n.includes('saturn')) t.add('サチュレーション');
 
-            return Array.from(t);
+            // Features / Tech
+            if (m.includes('native instruments') || m.includes('izotope') || m.includes('arturia') || m.includes('waves') || m.includes('output')) t.add('NKS対応');
+            if (n.includes('ozone') || n.includes('neutron') || n.includes('smart') || n.includes('ai') || n.includes('rx ')) t.add('AI搭載');
+            if (m.includes('universal audio') || n.includes('uad')) t.add('DSP動作');
+            if (m.includes('waves')) t.add('Waves');
+
+            return { tags: Array.from(t), sites };
         }
 
         function importFromCatalog(makerFilter) {
@@ -4614,21 +4832,18 @@
             let added = 0;
             list.forEach(item => {
                 if (plugins.some(p => p.name === item.n)) return;
-                const itemTags = getTags(item);
+                const enriched = enrichPlugin(item);
                 plugins.push({
                     id: uid(),
                     name: item.n, maker: item.m, category: item.c, auth: item.a,
-                    url: item.u || '', license: '', notes: '', installed: false,
-                    tags: itemTags, // Add tags to user plugin data? Note: user plugin structure usually has no 'tags' field per item, strictly GLOBAL tags link? No, wait.
-                    // User plugin does NOT have 'tags' array in data model usually?
-                    // Verify: plugins.push({ ..., tags: [] }) in snippet 4454?
-                    // Yes: tags: [], createdAt...
-                    // So we attach tags to the plugin INSTANCE.
+                    url: '',
+                    sites: enriched.sites,
+                    license: '', notes: '', installed: false,
+                    tags: enriched.tags,
                     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
                 });
 
-                // Merge tags into Global Tag Dictionary
-                itemTags.forEach(t => {
+                enriched.tags.forEach(t => {
                     if (!tags.some(tg => tg.name === t)) {
                         tags.push({ name: t, color: getRandomColor() });
                     }
@@ -4753,16 +4968,63 @@
         }
 
         // ============ FILTERS ============
-        function clearF() { ['searchInp', 'fCat', 'fPri', 'fAuth', 'fStat', 'fTag'].forEach(id => document.getElementById(id).value = ''); document.getElementById('fSort').value = 'pri'; render(); }
+        // ============ FILTERS ============
+        function clearF() { ['searchInp', 'fCat', 'fPri', 'fAuth', 'fStat'].forEach(id => document.getElementById(id).value = ''); document.getElementById('fSort').value = 'pri'; clearTagFilter(); }
         function getF() {
             const s = document.getElementById('searchInp').value.toLowerCase().trim(), c = document.getElementById('fCat').value,
-                p = document.getElementById('fPri').value, a = document.getElementById('fAuth').value, st = document.getElementById('fStat').value, tg = document.getElementById('fTag').value;
+                p = document.getElementById('fPri').value, a = document.getElementById('fAuth').value, st = document.getElementById('fStat').value;
+            // AND logic: Plugin must have ALL selected tags
+            const activeTags = Array.from(filterTags);
+
             return plugins.filter(pl => {
                 if (s && !(pl.name.toLowerCase().includes(s) || (pl.maker || '').toLowerCase().includes(s))) return false;
                 if (c && pl.category !== c) return false; if (p && pl.priority !== p) return false; if (a && pl.auth !== a) return false;
                 if (st === '1' && !pl.installed) return false; if (st === '0' && pl.installed) return false;
-                if (tg && !(pl.tags || []).includes(tg)) return false; return true;
+
+                if (activeTags.length) {
+                    const pTags = pl.tags || [];
+                    if (!activeTags.every(t => pTags.includes(t))) return false;
+                }
+                return true;
             });
+        }
+
+        // One-time migration for tags
+        function migrateTags() {
+            let changed = false;
+            // 1. Migrate Global Tags List
+            const newTags = [];
+            tags.forEach(t => {
+                const trans = TAG_TRANSLATION[t.name];
+                if (trans) {
+                    if (!newTags.find(x => x.name === trans)) newTags.push({ ...t, name: trans });
+                    changed = true;
+                } else {
+                    if (!newTags.find(x => x.name === t.name)) newTags.push(t);
+                }
+            });
+            if (changed) { tags = newTags; saveD('tags', tags); }
+
+            // 2. Migrate Plugin Tags
+            let pChanged = false;
+            plugins.forEach(p => {
+                if (p.tags && p.tags.length) {
+                    const newPTags = new Set();
+                    let thisChanged = false;
+                    p.tags.forEach(t => {
+                        const trans = TAG_TRANSLATION[t];
+                        if (trans) { newPTags.add(trans); thisChanged = true; }
+                        else newPTags.add(t);
+                    });
+                    if (thisChanged) { p.tags = Array.from(newPTags); pChanged = true; }
+                }
+            });
+            if (pChanged) { saveD('plugins', plugins); }
+
+            if (changed || pChanged) {
+                toast('♻️ タグを日本語に変換しました');
+                renderTags(); renderTagFilterChips(); render();
+            }
         }
         function sortList(arr) {
             const m = document.getElementById('fSort').value, ord = { '高(即復旧)': 0, '中': 1, '低': 2 };
@@ -4780,7 +5042,7 @@
         function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 2400); }
         function priBdg(p) {
             const m = { '高(即復旧)': 'bg-red-500/20 text-red-400 border border-red-500/30', '中': 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30', '低': 'bg-gray-600/30 text-gray-400 border border-gray-600/30' };
-            return `<span class="bdg ${m[p] || m['中']}">${p}</span>`;
+            return `<button onclick="setChip('fPri', '${p}'); event.stopPropagation();" class="bdg hover:opacity-80 transition-opacity ${m[p] || m['中']}">${p}</button>`;
         }
         function catIco(c) { return { 'インストゥルメント': '🎹', 'エフェクト': '🎛️', 'ユーティリティ': '🔧', 'その他': '📦' }[c] || '📦'; }
 
@@ -4820,6 +5082,25 @@
         function render() {
             updateChipVisuals();
             const list = document.getElementById('pList'), empty = document.getElementById('emptyOwned'), fil = getF(), sorted = sortList(fil);
+
+            // Active Filter Summary
+            const sumEl = document.getElementById('filterSummary');
+            if (sumEl) {
+                const activeFilters = [];
+                const c = document.getElementById('fCat').value; if (c) activeFilters.push(`[${c}]`);
+                const p = document.getElementById('fPri').value; if (p) activeFilters.push(`[優先:${p}]`);
+                const a = document.getElementById('fAuth').value; if (a) activeFilters.push(`[${a}]`);
+                const st = document.getElementById('fStat').value; if (st === '1') activeFilters.push('[インストール済]'); else if (st === '0') activeFilters.push('[未インストール]');
+                filterTags.forEach(t => activeFilters.push(`[#${t}]`));
+
+                if (activeFilters.length > 0) {
+                    sumEl.textContent = '絞り込み中: ' + activeFilters.join(' ');
+                    sumEl.classList.remove('hidden');
+                } else {
+                    sumEl.classList.add('hidden');
+                }
+            }
+
             const t = plugins.length, ins = plugins.filter(p => p.installed).length;
             const pct = t > 0 ? Math.round(ins / t * 100) : 0;
 
@@ -4849,16 +5130,16 @@
 
             list.innerHTML = sorted.map((p, i) => {
                 const opc = p.installed ? 'opacity-60' : '', bc = p.installed ? 'border-green-800/30' : p.priority === '高(即復旧)' ? 'border-red-800/30' : 'border-gray-800/50';
-                const tgs = (p.tags || []).map(tn => { const tObj = tags.find(x => x.name === tn); const tc = tObj ? tObj.color : '#666'; return `<span class="tag border" style="border-color:${tc};color:${tc}">${esc(tn)}</span>`; }).join('');
+                const tgs = (p.tags || []).map(tn => { const tObj = tags.find(x => x.name === tn); const tc = tObj ? tObj.color : '#666'; return `<button onclick="toggleFilterTag('${esc(tn)}')" class="tag border hover:opacity-80 transition-opacity" style="border-color:${tc};color:${tc}">${esc(tn)}</button>`; }).join('');
                 return `<div class="bg-s-800 rounded-xl border ${bc} p-4 card-h stagger-item relative ${opc}" style="animation-delay:${i * 50}ms">
 ${p.installed ? '<div class="absolute top-3 right-3 text-green-400 text-xs font-semibold flex items-center gap-1"><span class="w-2 h-2 bg-green-400 rounded-full"></span>完了</div>' : ''}
 <div class="flex items-start gap-3 mb-2"><span class="text-2xl">${catIco(p.category)}</span><div class="flex-1 min-w-0">
 <h3 class="font-bold text-white text-sm truncate ${p.installed ? 'line-through decoration-green-600/50' : ''}">${esc(p.name)}</h3>
 ${p.maker ? `<p class="text-xs text-gray-500 truncate">${esc(p.maker)}</p>` : ''}</div></div>
-<div class="flex flex-wrap gap-1 mb-2">${priBdg(p.priority)}<span class="bdg bg-a-500/15 text-a-400 border border-a-500/25">${esc(p.auth)}</span>${tgs}</div>
+<div class="flex flex-wrap gap-1 mb-2">${priBdg(p.priority)}<button onclick="setChip('fAuth', '${esc(p.auth)}'); event.stopPropagation();" class="bdg bg-a-500/15 text-a-400 border border-a-500/25 hover:opacity-80 transition-opacity">${esc(p.auth)}</button>${tgs}</div>
 ${p.email ? `<p class="text-xs text-gray-500 truncate mb-1">📧 ${esc(p.email)}</p>` : ''}
 ${p.license ? `<div class="flex items-center gap-1 mb-1"><span class="text-xs text-gray-500">🔑</span><span class="text-xs text-gray-400 font-mono" id="lc-${p.id}">••••••••</span><button onclick="togLic('${p.id}')" class="text-xs text-gray-600 hover:text-a-400 ml-1">👁</button></div>` : ''}
-${p.url ? `<a href="${esc(p.url)}" target="_blank" class="text-xs text-a-400 hover:text-a-500 truncate block mb-1">🔗 DLリンク</a>` : ''}
+${(p.sites && p.sites.length) ? `<div class="flex flex-wrap gap-2 mb-1">` + p.sites.map(s => `<a href="${esc(s.url)}" target="_blank" class="px-2 py-1 bg-s-700 hover:bg-s-600 border border-gray-700/50 rounded text-xs text-a-400 hover:text-a-300 transition-colors">${esc(s.name)}</a>`).join('') + `</div>` : (p.url ? `<a href="${esc(p.url)}" target="_blank" class="text-xs text-a-400 hover:text-a-500 truncate block mb-1">🔗 公式サイト</a>` : '')}
 ${p.notes ? `<p class="text-xs text-gray-600 truncate mb-1">📝 ${esc(p.notes)}</p>` : ''}
 <div class="flex items-center justify-between pt-2 mt-2 border-t border-gray-800/40">
 <label class="flex items-center gap-2 ${isReadOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer group'}">
@@ -5054,8 +5335,38 @@ ${!isReadOnly ? `<button onclick="moveToOwned('${w.id}')" class="text-xs text-gr
             document.getElementById('fM').value = p.m;
             document.getElementById('fC').value = p.c;
             document.getElementById('fA').value = p.a;
-            document.getElementById('fU').value = p.u || '';
-            ['fM', 'fC', 'fA', 'fU'].forEach(id => { document.getElementById(id).classList.add('autofill-flash'); setTimeout(() => document.getElementById(id).classList.remove('autofill-flash'), 600); });
+
+            // Enrich with sites & tags
+            // The PDB item 'p' has {n, m, c, a, u}
+            // enhance it
+            const enriched = enrichPlugin(p);
+
+            // Populate Sites
+            if (enriched.sites && enriched.sites.length) {
+                currentSites = [...enriched.sites];
+            } else if (p.u) {
+                currentSites = [{ name: '🌐 公式', url: p.u }];
+            } else {
+                currentSites = [];
+            }
+            renderSites();
+
+            // Populate Tags (Optional but helpful)
+            if (enriched.tags && enriched.tags.length) {
+                // Merge with existing tags? Or replace? 
+                // For a new entry, replace is fine.
+                // But we need to ensure the tags exist in global 'tags' list?
+                // existing logic in importFromCatalog adds them.
+                // Here we might just select them visually.
+                enriched.tags.forEach(t => {
+                    if (!tags.some(tg => tg.name === t)) {
+                        tags.push({ name: t, color: getRandomColor() });
+                    }
+                });
+                renderTagSelect(enriched.tags);
+            }
+
+            ['fM', 'fC', 'fA'].forEach(id => { document.getElementById(id).classList.add('autofill-flash'); setTimeout(() => document.getElementById(id).classList.remove('autofill-flash'), 600); });
             document.getElementById('acDrop').classList.remove('show');
             document.getElementById('fN').classList.remove('ai-searching');
             const src = p._ai ? '🤖 AI自動入力済' : '✅ 自動入力済';
