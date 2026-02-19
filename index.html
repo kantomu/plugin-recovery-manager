@@ -4041,7 +4041,12 @@
             switchTab('owned'); render(); renderTags(); renderWish(); renderEmails(); toast('👋 ようこそ、Guestさん');
         }
 
-        function logout() { localStorage.removeItem(K.session); CU = null; location.reload(); }
+        async function logout() {
+            if (auth) await window.firebase.signOut(auth);
+            localStorage.removeItem(K.session);
+            CU = null;
+            location.reload();
+        }
 
 
 
